@@ -4,8 +4,9 @@ import sqlite3
 from typing import Dict, List, Literal, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, FileResponse
+# from fastapi.staticfiles import StaticFiles
 import pathlib
-from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 import requests
 from dotenv import load_dotenv
@@ -17,23 +18,21 @@ if not EIA_KEY:
 
 app = FastAPI(title="Fuel Cost API")
 
-# serve index.html (tries index_with_map_search.html first, then index.html)
 @app.get("/")
 def root():
-    base = pathlib.Path(__file__).parent
-    for name in ("index_with_map_search.html", "index.html"):
-        p = base / name
-        if p.exists():
-            return FileResponse(p, media_type="text/html")
-    raise HTTPException(status_code=404, detail="index html not found")
+    index_path = pathlib.Path(__file__).parent / "index_with_map_search.html"
+    if not index_path.exists():
+        return RedirectResponse(url="/docs")
+    return FileResponse(index_path)
 
-# serve styles.css if requested
+# serve local [styles.css](http://_vscodecontentref_/1) requested at [styles.css](http://_vscodecontentref_/2)
 @app.get("/styles.css")
 def styles_css():
     css_path = pathlib.Path(__file__).parent / "styles.css"
     if not css_path.exists():
-        raise HTTPException(status_code=404, detail="styles.css not found")
+        raise HTTPException(status_code=404, detail=f"styles.css not found at {css_path}")
     return FileResponse(css_path, media_type="text/css")
+
 # Allow local file and common dev origins
 app.add_middleware(
     CORSMiddleware,
